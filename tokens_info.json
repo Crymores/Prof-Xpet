@@ -1,0 +1,45 @@
+{
+    "apiCallCount": 0,
+    "tokens": {
+      "xpet": {
+        "address": "0x00CBcF7B3d37844e44b888Bc747bDd75FCf4E555",
+        "symbol": "XPET",
+        "emoji": "🐼",  
+        "priceUsd": null,
+        "priceChange1h": null,
+        "priceChange24h": null,
+        "liquidityUsd": null,
+        "liquidityToken": null,
+        "fdv": null,
+        "imageUrl": "C:\\Desktop\\prof-xpet\\img-xpet\\xpet1.jpeg",
+        "lastUpdated": null
+      },
+      "bpet": {
+        "address": "0x6dAF586B7370B14163171544fca24AbcC0862ac5",
+        "symbol": "BPET",
+        "emoji": "🦜",  
+        "priceUsd": null,
+        "priceChange1h": null,
+        "priceChange24h": null,
+        "liquidityUsd": null,
+        "liquidityToken": null,
+        "fdv": null,
+        "imageUrl": "C:\\Desktop\\prof-xpet\\img-xpet\\Bpet.jpeg",
+        "lastUpdated": null
+      },
+      "x404": {
+        "address": "0x7D5203E74a2aFe3f474e21Fef3e6CE04757652B9",
+        "symbol": "X404",
+        "emoji": "🏹",  
+        "priceUsd": null,
+        "priceChange1h": null,
+        "priceChange24h": null,
+        "liquidityUsd": null,
+        "liquidityToken": null,
+        "fdv": null,
+        "imageUrl": "C:\\Desktop\\prof-xpet\\img-xpet\\x404r.jpeg",
+        "lastUpdated": null
+      }
+    }
+  }
+  
