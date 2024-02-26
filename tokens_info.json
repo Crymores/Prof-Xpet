@@ -11,7 +11,7 @@
         "liquidityUsd": null,
         "liquidityToken": null,
         "fdv": null,
-        "imageUrl": "C:\\Desktop\\prof-xpet\\img-xpet\\xpet1.jpeg",
+        "imageUrl": "https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/xpetv2.jpeg?raw=true",
         "lastUpdated": null
       },
       "bpet": {
@@ -24,7 +24,7 @@
         "liquidityUsd": null,
         "liquidityToken": null,
         "fdv": null,
-        "imageUrl": "C:\\Desktop\\prof-xpet\\img-xpet\\Bpet.jpeg",
+        "imageUrl": "https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/Bpet.jpg?raw=true",
         "lastUpdated": null
       },
       "x404": {
@@ -37,7 +37,7 @@
         "liquidityUsd": null,
         "liquidityToken": null,
         "fdv": null,
-        "imageUrl": "C:\\Desktop\\prof-xpet\\img-xpet\\x404r.jpeg",
+        "imageUrl": "https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/x404r.jpg?raw=true",
         "lastUpdated": null
       }
     }
