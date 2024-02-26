@@ -7,12 +7,13 @@ import json
 from datetime import datetime
 import asyncio
 import os
+import time
 
-TOKEN = 'Token'  # Assurez-vous de stocker votre token de manière sécurisée
+TOKEN = 'MTIwMzA2Mjk4OTE4ODc1OTU5Mg.GmOZvB.3EYTiCbEVDLWmtbRz8UjWvKxERW9QCLrG1fn04'  # Assurez-vous de stocker votre token de manière sécurisée
 FILE_PATH = 'tokens_info.json'  # Assurez-vous que le chemin est correct
 ALERTS_FILE_PATH = 'alerts_info.json'
-UPDATE_JSON_INTERVAL = 15 * 60  # 15 minutes en secondes
-STATUS_UPDATE_INTERVAL = 30  # 1 minute en secondes
+UPDATE_JSON_INTERVAL = 10 * 60  # 10 minutes en secondes
+STATUS_UPDATE_INTERVAL = 30  #  secondes
 
 intents = discord.Intents.all()
 bot = discord.Bot(intents=intents)
@@ -172,6 +173,62 @@ async def check_price_alerts():
 # Ajoutez le groupe de commandes au bot
 bot.add_application_command(crypto)
 
+# Supposons que vous avez chargé votre fichier JSON dans une variable `commands_help`
+with open('help_commands.json', 'r') as f:
+    commands_help = json.load(f)
+
+@bot.slash_command(name="help", description="Affiche les informations d'aide pour les commandes disponibles.")
+async def help_command(interaction: discord.Interaction, command_name: str):
+    # Trouver la commande dans le fichier JSON
+    command_info = next((item for item in commands_help['commands'] if item["name"] == command_name), None)
+    
+    if command_info:
+        embed = discord.Embed(title=command_info["name"], description=command_info["description"])
+        
+        # Si une image est présente, l'ajouter à l'embed
+        if command_info.get("image"):
+            embed.set_image(url=command_info["image"])
+        
+        # Envoyer le message intégré à l'utilisateur qui a demandé l'aide
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    else:
+        # Si la commande n'est pas trouvée, envoyer un message d'erreur
+        await interaction.response.send_message("Commande non trouvée.", ephemeral=True)
+
+# Créez un menu de sélection avec les options d'aide
+select_menu = discord.ui.Select(
+    placeholder='Choisissez une commande pour obtenir de l aide',  # Texte affiché sur le menu
+    options=[
+        discord.SelectOption(label=f"/{cmd}", description=desc)
+        for cmd, desc in help_command.items()
+    ]
+)
+
+# Ajoutez une classe pour le view qui contient le menu de sélection
+class HelpMenu(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(select_menu)
+
+@bot.slash_command(name="help", description="Affiche les informations d'aide pour les commandes disponibles.")
+async def help_command(interaction: discord.Interaction):
+    # Créer une instance de votre vue personnalisée contenant le menu de sélection
+    view = HelpMenu()
+
+    # Envoyer un message avec le menu de sélection
+    await interaction.response.send_message("Sélectionnez une commande pour obtenir de l'aide:", view=view)
+
+# Ajoutez un écouteur pour gérer la sélection de l'option du menu
+@select_menu.callback
+async def handle_menu(interaction: discord.Interaction, select: discord.ui.Select):
+    # Récupérer la commande sélectionnée
+    selected_command = select.values[0].removeprefix('/')
+    
+    # Récupérer la description de la commande
+    description_commande = help_command[selected_command]
+    
+    # Envoyer l'aide pour la commande sélectionnée
+    await interaction.response.send_message(f"Aide pour `{selected_command}`: {description_commande}", ephemeral=True)
 
 @bot.event
 async def on_ready():
