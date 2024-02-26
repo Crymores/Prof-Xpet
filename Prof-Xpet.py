@@ -9,7 +9,7 @@ import asyncio
 import os
 import time
 
-TOKEN = 'MTIwMzA2Mjk4OTE4ODc1OTU5Mg.GmOZvB.3EYTiCbEVDLWmtbRz8UjWvKxERW9QCLrG1fn04'  # Assurez-vous de stocker votre token de manière sécurisée
+TOKEN = 'Token'  # Assurez-vous de stocker votre token de manière sécurisée
 FILE_PATH = 'tokens_info.json'  # Assurez-vous que le chemin est correct
 ALERTS_FILE_PATH = 'alerts_info.json'
 UPDATE_JSON_INTERVAL = 10 * 60  # 10 minutes en secondes
