@@ -1,21 +1,50 @@
 {
-    "commands_help": [
+    "userID1": [
         {
-            "name": "/crypto_info",
-            "description": "Obtenez les informations détaillées pour un crypto-token spécifié.",
-            "image": "url_de_l'image_si_nécessaire"
+            "token": "XPET",
+            "target_price": null
         },
         {
-            "name": "/crypto_alert",
-            "description": "Définir une alerte de prix pour un token spécifié.",
-            "image": "url_de_l'image_si_nécessaire"
+            "token": "BPET",
+            "target_price": null
         },
         {
-            "name": "fdv",
-            "description": "Le FDV, ou Full Diluted Valuation Dans le domaine des cryptomonnaies, le FDV est calculé en multipliant le nombre total de tokens qui seront jamais créés (la fourniture totale maximale) par le prix actuel de chaque token. Cela donne une estimation de ce que serait la valeur de marché totale de la cryptomonnaie si tous les tokens prévus étaient en circulation et vendus au prix actuel. C'est une métrique importante pour les investisseurs car elle leur permet de comprendre la valorisation maximale d'un projet de cryptomonnaie, en prenant en compte non seulement les tokens actuellement en circulation mais aussi ceux qui seront émis à l'avenir.",
-            "image": "url_de_l'image_si_nécessaire"
+            "token": "X404",
+            "target_price": null
         }
-
-
-    ]  
+    ],
+    "userID2": [
+        {
+            "token": "XPET",
+            "target_price": null
+        },
+        {
+            "token": "BPET",
+            "target_price": null
+        },
+        {
+            "token": "X404",
+            "target_price": null
+        }
+    ],
+    "userID3": [
+        {
+            "token": "XPET",
+            "target_price": null
+        },
+        {
+            "token": "BPET",
+            "target_price": null
+        },
+        {
+            "token": "X404",
+            "target_price": null
+        }
+    ],
+    "": [
+        {
+            "token": "BPET",
+            "target_price": 0.2
+        }
+    ]
 }
