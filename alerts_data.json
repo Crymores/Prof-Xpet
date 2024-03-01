@@ -1,0 +1,50 @@
+{
+    "userID1": [
+        {
+            "token": "XPET",
+            "target_price": null
+        },
+        {
+            "token": "BPET",
+            "target_price": null
+        },
+        {
+            "token": "X404",
+            "target_price": null
+        }
+    ],
+    "userID2": [
+        {
+            "token": "XPET",
+            "target_price": null
+        },
+        {
+            "token": "BPET",
+            "target_price": null
+        },
+        {
+            "token": "X404",
+            "target_price": null
+        }
+    ],
+    "userID3": [
+        {
+            "token": "XPET",
+            "target_price": null
+        },
+        {
+            "token": "BPET",
+            "target_price": null
+        },
+        {
+            "token": "X404",
+            "target_price": null
+        }
+    ],
+    "313057693214703629": [
+        {
+            "token": "BPET",
+            "target_price": 0.2
+        }
+    ]
+}
