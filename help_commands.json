@@ -1,50 +1,39 @@
 {
-    "userID1": [
-        {
-            "token": "XPET",
-            "target_price": null
-        },
-        {
-            "token": "BPET",
-            "target_price": null
-        },
-        {
-            "token": "X404",
-            "target_price": null
-        }
-    ],
-    "userID2": [
-        {
-            "token": "XPET",
-            "target_price": null
-        },
-        {
-            "token": "BPET",
-            "target_price": null
-        },
-        {
-            "token": "X404",
-            "target_price": null
-        }
-    ],
-    "userID3": [
-        {
-            "token": "XPET",
-            "target_price": null
-        },
-        {
-            "token": "BPET",
-            "target_price": null
-        },
-        {
-            "token": "X404",
-            "target_price": null
-        }
-    ],
-    "": [
-        {
-            "token": "BPET",
-            "target_price": 0.2
-        }
-    ]
+  "commands_help": [
+    {
+      "name": "info",
+      "description": "Affiche des informations sur une crypto-monnaie spécifique.",
+      "image": null
+    },
+    {
+      "name": "alert",
+      "description": "Définit une alerte de prix pour un token spécifique.",
+      "image": null
+    },
+    {
+      "name": "help",
+      "description": "Affiche le menu d'aide.",
+      "image": null
+    },
+    {
+      "name": "Trading",
+      "description": "Simulez le trading de crypto-monnaies pour apprendre et vous amuser.",
+      "image": null
+    },
+    {
+      "name": "Missions",
+      "description": "Complétez des missions pour gagner des récompenses.",
+      "image": null
+    },
+    {
+      "name": "Blockchain",
+      "description": "Une technologie de stockage et de transmission d'informations, transparente, sécurisée, et fonctionnant sans organe central de contrôle.",
+      "image": null
+    },
+    {
+      "name": "Token",
+      "description": "Représente une unité de valeur émise par un projet.",
+      "image": null
+    }
+  ]
 }
