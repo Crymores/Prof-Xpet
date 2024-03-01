@@ -7,9 +7,9 @@ import json
 from datetime import datetime
 import asyncio
 import os
-import time
 
-TOKEN = 'Token'  # Assurez-vous de stocker votre token de manière sécurisée
+
+TOKEN = 'Token_discord'  # Assurez-vous de stocker votre token de manière sécurisée
 FILE_PATH = 'tokens_info.json'  # Assurez-vous que le chemin est correct
 ALERTS_FILE_PATH = 'alerts_info.json'
 UPDATE_JSON_INTERVAL = 10 * 60  # 10 minutes en secondes
@@ -39,29 +39,52 @@ def save_alerts_data(alerts):
         json.dump(alerts, file, indent=4)
         
 # Fonction pour récupérer les informations des tokens
+@tasks.loop(seconds=UPDATE_JSON_INTERVAL)
 async def fetch_token_info():
     url = "https://api.dexscreener.com/latest/dex/tokens/"
     async with aiohttp.ClientSession() as session:
-        data = read_token_data()
-        for token, info in data['tokens'].items():
+        data = read_token_data()  # Assurez-vous que cette fonction lit correctement le fichier
+        for token, info in data.get('tokens', {}).items():
             try:
                 response = await session.get(f"{url}{info['address']}")
                 if response.status == 200:
                     dex_data = await response.json()
                     pair_data = dex_data['pairs'][0]
+                    # Formatage des variations de prix avec signe
+                    price_change_1h = pair_data['priceChange']['h1']
+                    price_change_24h = pair_data['priceChange']['h24']
+                    price_change_1h_str = f"+{price_change_1h}%" if price_change_1h > 0 else f"{price_change_1h}%"
+                    price_change_24h_str = f"+{price_change_24h}%" if price_change_24h > 0 else f"{price_change_24h}%"
+                    
+                    # Formatage de la date
+                    last_updated = datetime.now().strftime('%d/%m/%Y %Hh%M')
+                    
                     info.update({
                         "priceUsd": pair_data['priceUsd'],
-                        "priceChange1h": pair_data['priceChange']['h1'],
-                        "priceChange24h": pair_data['priceChange']['h24'],
+                        "priceChange1h": price_change_1h_str,
+                        "priceChange24h": price_change_24h_str,
                         "liquidityUsd": pair_data['liquidity']['usd'],
                         "fdv": pair_data['fdv'],
-                        "last_updated": datetime.now().isoformat()
+                        "last_updated": last_updated
                     })
-                    data['apiCallCount'] += 1
+                    data['apiCallCount'] = data.get('apiCallCount', 0) + 1
+                else:
+                    print(f"Erreur {response.status} lors de la récupération des données pour le token {token}")
             except Exception as e:
                 print(f"Erreur lors de la récupération des données pour le token {token}: {e}")
-        with open(FILE_PATH, 'w') as json_file:
+        # Mise à jour du fichier JSON avec les nouvelles données
+        with open(FILE_PATH, 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, indent=4)
+
+# Assurez-vous que la fonction read_token_data est bien définie et capable de lire le fichier correctement
+# Exemple de fonction read_token_data ici pour la cohérence
+def read_token_data():
+    if os.path.exists(FILE_PATH):
+        with open(FILE_PATH, 'r', encoding='utf-8') as json_file:
+            return json.load(json_file)
+    else:
+        print(f"Le fichier {FILE_PATH} n'existe pas.")
+        return {"tokens": {}, "apiCallCount": 0}  # Initialiser avec une structure de base si le fichier n'existe pas
 
 @tasks.loop(seconds=STATUS_UPDATE_INTERVAL)
 async def update_token_data_and_status():
@@ -76,7 +99,7 @@ async def update_token_data_and_status():
             await asyncio.sleep(STATUS_UPDATE_INTERVAL)
             
             # Définir le statut pour la variation 1h et 24h
-            status_message = f"{token_info['emoji']} {token_name.upper()}: 1h: {token_info['priceChange1h']}%, 24h: {token_info['priceChange24h']}%"
+            status_message = f"{token_info['emoji']} {token_name.upper()}: 1h: {token_info['priceChange1h']}, 24h: {token_info['priceChange24h']}"
             await bot.change_presence(activity=discord.Game(name=status_message))
             await asyncio.sleep(STATUS_UPDATE_INTERVAL)
             
@@ -90,7 +113,7 @@ async def update_token_data_and_status():
 crypto = SlashCommandGroup("crypto", "Commandes relatives aux crypto-monnaies")
 
 @crypto.command(name="info", description="Obtenez les informations détaillées pour un crypto-token spécifié.")
-async def crypto_info(interaction: discord.Interaction):
+async def info(interaction: discord.Interaction):
     # Lire les données des tokens
     token_data = read_token_data()
 
@@ -131,108 +154,121 @@ async def crypto_info(interaction: discord.Interaction):
 
 
 @crypto.command(name="alert", description="Définir une alerte de prix pour un token spécifié.")
-async def crypto_alert(interaction: discord.Interaction, 
-                       token: Option(str, "Entrez le symbole du token", required=True),
-                       target_price: Option(float, "Entrez le prix cible", required=True)):
-    user_id = interaction.user.id
-    alerts = read_alerts_data()  # Vous devez créer cette fonction pour lire les données d'alerte d'un fichier ou d'une base de données
-    
-    # Ajouter ou mettre à jour l'alerte pour l'utilisateur
-    alerts[user_id] = {
-        "token": token,
-        "target_price": target_price
-    }
-    save_alerts_data(alerts)  # Vous devez créer cette fonction pour sauvegarder les données d'alerte
+async def alert(interaction: discord.Interaction, 
+                token: Option(str, "Entrez le symbole du token", required=True),
+                target_price: Option(float, "Entrez le prix cible", required=True)):
+    user_id = str(interaction.user.id)  # Ensure the user ID is a string for JSON compatibility
+    alerts = read_alerts_data()  # Read existing alerts
+
+    # If the user already has alerts, append to them; otherwise, create a new list
+    if user_id in alerts:
+        alerts[user_id].append({"token": token, "target_price": target_price})
+    else:
+        alerts[user_id] = [{"token": token, "target_price": target_price}]
+
+    save_alerts_data(alerts)  # Save updated alerts
 
     await interaction.response.send_message(f"Alerte définie pour {token} à ${target_price}.")
 
 @tasks.loop(seconds=60)
 async def check_price_alerts():
     alerts = read_alerts_data()
-    token_data = read_token_data()
     
-    for user_id, alert in alerts.items():
-        user = await bot.fetch_user(user_id)
-        token_info = token_data['tokens'].get(alert['token'])
-        if token_info:
-            current_price = float(token_info['priceUsd'])
-            if current_price >= alert['target_price']:
-                # Créer un embed pour la notification d'alerte
+    for user_id, user_alerts in alerts.items():
+        try:
+            user_int_id = int(user_id)  # Essayez de convertir en entier
+        except ValueError:
+            print(f"ID utilisateur invalide : {user_id}")
+            continue  # Passez à l'ID utilisateur suivant si la conversion échoue
+        
+        user = await bot.fetch_user(user_int_id)
+        for alert in user_alerts:
+            token_info = read_token_data(alert['token'])  # Adjust this to match your token data fetching logic
+            if token_info and float(token_info['priceUsd']) >= alert['target_price']:
                 embed = discord.Embed(title=f"🚨 Alerte: {alert['token']} Alerte de Prix", color=discord.Color.red())
-                embed.add_field(name="Prix Actuel", value=f"${current_price}", inline=False)
+                embed.add_field(name="Prix Actuel", value=f"${token_info['priceUsd']}", inline=False)
                 embed.add_field(name="Prix Cible", value=f"${alert['target_price']}", inline=False)
-                embed.set_thumbnail(url='https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/alerte.jpg?raw=true')  # Utilisez l'URL de l'image depuis les données du token
+                # Assuming the image URL is static or you have a way to dynamically fetch it based on the token
+                embed.set_thumbnail(url='https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/alerte3.jpeg?raw=true')  
                 await user.send(embed=embed)
-                # Supprimer l'alerte après notification
-                del alerts[user_id]
+                # Instead of deleting, mark for removal or directly remove if your logic permits
+                user_alerts.remove(alert)
     
-    save_alerts_data(alerts)  # Sauvegarder les modifications des alertes
+    save_alerts_data(alerts)  # Save any changes to the alerts
     await asyncio.sleep(60)  # Vérifier les prix toutes les 60 secondes
 
 
 # Ajoutez le groupe de commandes au bot
 bot.add_application_command(crypto)
 
-# Supposons que vous avez chargé votre fichier JSON dans une variable `commands_help`
+
+# Charger le fichier JSON contenant les informations d'aide pour les commandes
 with open('help_commands.json', 'r') as f:
     commands_help = json.load(f)
 
-@bot.slash_command(name="help", description="Affiche les informations d'aide pour les commandes disponibles.")
-async def help_command(interaction: discord.Interaction, command_name: str):
-    # Trouver la commande dans le fichier JSON
-    command_info = next((item for item in commands_help['commands'] if item["name"] == command_name), None)
-    
+class HelpMenu(discord.ui.View):
+    def __init__(self, commands_help):
+        super().__init__()
+        self.commands_help = commands_help
+        # Création du menu de sélection avec les noms des commandes disponibles
+        options = [
+            discord.SelectOption(label=command["name"], description=command["description"][:100])
+            for command in self.commands_help["commands_help"]
+        ]
+        self.select_menu = discord.ui.Select(placeholder='Choisissez une commande pour obtenir de l’aide', options=options)
+        self.add_item(self.select_menu)
+
+@discord.ui.select()
+async def handle_menu(self, interaction: discord.Interaction, select: discord.ui.Select):
+    selected_command_name = select.values[0]
+    command_info = next((item for item in self.commands_help["commands_help"] if item["name"] == selected_command_name), None)
+
     if command_info:
-        embed = discord.Embed(title=command_info["name"], description=command_info["description"])
-        
-        # Si une image est présente, l'ajouter à l'embed
+        # Création d'un embed
+        embed = discord.Embed(title=command_info["name"])
+
+        # Position de la description
+        if command_info["layout"]["description_position"] == "top":
+            embed.description = command_info["description"]
+
+        # Ajouter l'image si disponible et ajuster la taille
         if command_info.get("image"):
             embed.set_image(url=command_info["image"])
-        
-        # Envoyer le message intégré à l'utilisateur qui a demandé l'aide
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+            # Vous devrez implémenter une logique pour ajuster la taille de l'image.
+
+        # Position de la description (si elle est en bas)
+        if command_info["layout"]["description_position"] == "bottom":
+            embed.description = command_info["description"]
+
+        # Ajouter les détails supplémentaires
+        if command_info.get("details"):
+            for key, value in command_info["details"].items():
+                embed.add_field(name=key.capitalize(), value=value, inline=False)
+
+        # Envoyer l'embed à l'utilisateur
+        await interaction.response.edit_message(embed=embed, view=None)
     else:
-        # Si la commande n'est pas trouvée, envoyer un message d'erreur
         await interaction.response.send_message("Commande non trouvée.", ephemeral=True)
 
-# Créez un menu de sélection avec les options d'aide
-select_menu = discord.ui.Select(
-    placeholder='Choisissez une commande pour obtenir de l aide',  # Texte affiché sur le menu
-    options=[
-        discord.SelectOption(label=f"/{cmd}", description=desc)
-        for cmd, desc in help_command.items()
-    ]
-)
+# Chargement du fichier JSON
+with open('help_commands.json', 'r') as file:
+    data = json.load(file)
 
-# Ajoutez une classe pour le view qui contient le menu de sélection
-class HelpMenu(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.add_item(select_menu)
+commands_help = data['commands_help']
 
-@bot.slash_command(name="help", description="Affiche les informations d'aide pour les commandes disponibles.")
-async def help_command(interaction: discord.Interaction):
-    # Créer une instance de votre vue personnalisée contenant le menu de sélection
-    view = HelpMenu()
 
-    # Envoyer un message avec le menu de sélection
-    await interaction.response.send_message("Sélectionnez une commande pour obtenir de l'aide:", view=view)
-
-# Ajoutez un écouteur pour gérer la sélection de l'option du menu
-@select_menu.callback
-async def handle_menu(interaction: discord.Interaction, select: discord.ui.Select):
-    # Récupérer la commande sélectionnée
-    selected_command = select.values[0].removeprefix('/')
+@bot.command(name="help", description="Affiche les informations d'aide pour les commandes disponibles.")
+async def help_command(ctx):
+    # Créer une instance de la vue contenant le menu de sélection
+    view = HelpMenu(commands_help)
     
-    # Récupérer la description de la commande
-    description_commande = help_command[selected_command]
-    
-    # Envoyer l'aide pour la commande sélectionnée
-    await interaction.response.send_message(f"Aide pour `{selected_command}`: {description_commande}", ephemeral=True)
+    # Envoyer le message avec le menu de sélection à l'utilisateur
+    await ctx.send("Sélectionnez une commande pour obtenir de l'aide:", view=view)
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
+    await fetch_token_info()  # Utilisez await ici pour exécuter la fonction asynchrone
     update_token_data_and_status.start()
     check_price_alerts.start()  # Démarrer la tâche de vérification des alertes
 bot.run(TOKEN)
