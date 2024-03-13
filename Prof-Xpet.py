@@ -8,17 +8,15 @@ from datetime import datetime
 import asyncio
 import os
 
-TOKEN = 'ton token didi'  # Assurez-vous de stocker votre token de manière sécurisée
+TOKEN = ''  # Assurez-vous de stocker votre token de manière sécurisée
 FILE_PATH = 'tokens_info.json'  # Assurez-vous que le chemin est correct
 ALERTS_FILE_PATH = 'alerts_info.json'
 UPDATE_JSON_INTERVAL = 10 * 60  # 10 minutes en secondes
 STATUS_UPDATE_INTERVAL = 30  #  secondes
 
-# Initialisation du bot
-intents = discord.Intents.all()
-bot = discord.Bot(intents=intents)
-
-
+intents = discord.Intents.default()  # Ou `discord.Intents.all()` pour tous les intents
+intents.messages = True  # Assurez-vous d'activer les intents dont vous avez besoin
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Fonction de lecture du fichier JSON
 def read_token_data():
@@ -78,15 +76,6 @@ async def fetch_token_info():
         with open(FILE_PATH, 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, indent=4)
 
-# Assurez-vous que la fonction read_token_data est bien définie et capable de lire le fichier correctement
-# Exemple de fonction read_token_data ici pour la cohérence
-def read_token_data():
-    if os.path.exists(FILE_PATH):
-        with open(FILE_PATH, 'r', encoding='utf-8') as json_file:
-            return json.load(json_file)
-    else:
-        print(f"Le fichier {FILE_PATH} n'existe pas.")
-        return {"tokens": {}, "apiCallCount": 0}  # Initialiser avec une structure de base si le fichier n'existe pas
 
 @tasks.loop(seconds=STATUS_UPDATE_INTERVAL)
 async def update_token_data_and_status():
@@ -113,7 +102,7 @@ async def update_token_data_and_status():
             
 
 @bot.slash_command(name="info", description="Obtenez les informations détaillées pour un crypto-token spécifié.")
-async def info(interaction: discord.Interaction):
+async def info(ctx):  # Suppression du paramètre `token` inutilisé dans cet exemple
     # Lire les données des tokens
     token_data = read_token_data()
 
@@ -123,12 +112,10 @@ async def info(interaction: discord.Interaction):
                                                                   description=token_data['tokens'][key]['address'],
                                                                   value=key) for key in token_data['tokens']])
 
-    # Créer une vue qui contient le menu de sélection
-    view = discord.ui.View()
-    view.add_item(select_menu)
+    # Définir la fonction callback pour le menu de sélection
+    async def select_callback(interaction: discord.Interaction):
+        # Logique de callback identique, assurez-vous juste qu'elle est définie dans la portée appropriée
 
-    # Attendre que l'utilisateur fasse un choix
-    async def select_callback(interaction):
         token_key = select_menu.values[0]  # Récupérer la valeur sélectionnée
         token_info = token_data['tokens'][token_key]
 
@@ -141,15 +128,19 @@ async def info(interaction: discord.Interaction):
         embed.add_field(name="Liquidité USD", value=f"${token_info['liquidityUsd']}", inline=True)
         embed.add_field(name="Valeur FDV", value=f"${token_info['fdv']}", inline=True)
         embed.add_field(name="Dernière mise à jour", value=f"{token_info['last_updated']}", inline=False)
-        embed.add_field(name="Adresse du contrat", value=f"`{token_info['address']}`", inline=False)  # Ajoutez cette ligne
-        # Envoyer l'embed à l'utilisateur
+        embed.add_field(name="Adresse du contrat", value=f"`{token_info['address']}`", inline=False)
+        
         await interaction.response.edit_message(content="", embed=embed, view=None)
 
-    # Ajouter le callback au menu de sélection
-    select_menu.callback = select_callback
+    select_menu.callback = select_callback  # Assignez le callback au menu de sélection
+
+    # Créer une vue qui contient le menu de sélection
+    view = discord.ui.View()
+    view.add_item(select_menu)
 
     # Envoyer un message à l'utilisateur avec le menu de sélection
-    await interaction.response.send_message("Sélectionnez un token pour obtenir des informations:", view=view)
+    # Notez l'utilisation de `ctx.respond()` pour répondre à une commande slash
+    await ctx.respond("Sélectionnez un token pour obtenir des informations:", view=view)
 
 
 
@@ -157,28 +148,27 @@ async def info(interaction: discord.Interaction):
 async def alert(interaction: discord.Interaction):
     token_data = read_token_data()  # Assurez-vous d'attraper les erreurs de lecture du fichier ici
 
-    # Vérifiez que token_data contient bien les données attendues
     if not token_data.get('tokens'):
         await interaction.response.send_message("Erreur lors de la récupération des tokens. Veuillez réessayer plus tard.", ephemeral=True)
         return
 
-    # Créez un menu déroulant pour la sélection des tokens
     select_menu = discord.ui.Select(placeholder="Choisissez un token",
                                     options=[discord.SelectOption(label=token['symbol'], description=token['address'], value=token['symbol'])
                                              for token in token_data['tokens'].values()],
                                     row=0)
 
-    # Définissez le callback pour la sélection du token
-    async def select_callback(interaction: discord.Interaction, select: discord.ui.Select):
-        # Demandez à l'utilisateur d'entrer le prix cible
-        await interaction.response.send_modal(PriceTargetModal(select.values[0]))  # Utilisez un modal pour l'entrée du prix
+    async def select_callback(interaction: discord.Interaction):
+        # Cette ligne a été modifiée pour accéder directement aux valeurs sélectionnées
+        selected_token = interaction.data['values'][0]
+        # Utilisez un modal pour demander le prix cible
+        await interaction.response.send_modal(PriceTargetModal(selected_token))
 
     select_menu.callback = select_callback
 
-    # Ajoutez le menu de sélection à une vue et envoyez-le
     view = discord.ui.View()
     view.add_item(select_menu)
     await interaction.response.send_message("Veuillez sélectionner un token pour définir une alerte :", view=view, ephemeral=True)
+
 
 class PriceTargetModal(discord.ui.Modal):
     def __init__(self, token_symbol: str, *args, **kwargs):
@@ -248,51 +238,11 @@ async def check_price_alerts():
 
 
 
-with open('help_commands.json', 'r', encoding='utf-8') as f:
-    commands_help_data = json.load(f)
-
-class HelpMenu(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        # Extraire les commandes disponibles
-        commands_help = commands_help_data.get("help", {}).get("commands", {}).get("items", [])
-        options = [
-            discord.SelectOption(label=command["command"], description=command.get("description", "No description available")[:100], value=command["command"])
-            for command in commands_help
-        ]
-        # Création du menu de sélection
-        self.select_menu = discord.ui.Select(placeholder='Choisissez une commande pour obtenir de l aide', options=options)
-        self.select_menu.callback = self.handle_menu
-        self.add_item(self.select_menu)
-
-    async def handle_menu(self, interaction: discord.Interaction, select: discord.ui.Select):
-        command_info = next((item for item in commands_help_data.get("help", {}).get("commands", {}).get("items", []) if item["command"] == select.values[0]), None)
-
-        if command_info:
-            embed = discord.Embed(title=command_info["command"], description=command_info["description"])
-            if command_info.get("image") and command_info["image"] != "null":
-                embed.set_image(url=command_info["image"])
-            await interaction.response.edit_message(content="", embed=embed, view=None)
-        else:
-            await interaction.response.send_message("Commande non trouvée.", ephemeral=True)
-
-class HelpBot(commands.Bot):
-    def __init__(self, command_prefix, intents):
-        super().__init__(command_prefix=command_prefix, intents=intents)
-
-    async def setup_hook(self):
-        @self.command(name="help", description="Affiche les informations daide pour les commandes disponibles.")
-        async def help_command(ctx):
-            view = HelpMenu()
-            await ctx.send("Sélectionnez une commande pour obtenir de l'aide:", view=view)
-
-intents = discord.Intents.default()
-bot = HelpBot(command_prefix="!", intents=intents)
-
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
-    await fetch_token_info()  # Utilisez await ici pour exécuter la fonction asynchrone
+    fetch_token_info.start()  # Avec py-cord, vous n'avez plus besoin d'utiliser `await` ici
     update_token_data_and_status.start()
-    check_price_alerts.start()  # Démarrer la tâche de vérification des alertes
+    check_price_alerts.start()
+
 bot.run(TOKEN)
