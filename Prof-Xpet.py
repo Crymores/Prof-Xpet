@@ -8,7 +8,7 @@ from datetime import datetime
 import asyncio
 import os
 
-TOKEN = 'tokendidi'  # Assurez-vous de stocker votre token de manière sécurisée
+TOKEN = 'ton token didi'  # Assurez-vous de stocker votre token de manière sécurisée
 FILE_PATH = 'tokens_info.json'  # Assurez-vous que le chemin est correct
 ALERTS_FILE_PATH = 'alerts_info.json'
 UPDATE_JSON_INTERVAL = 10 * 60  # 10 minutes en secondes
@@ -237,7 +237,7 @@ async def check_price_alerts():
                     embed = discord.Embed(title=f"🚨 Alerte: {token_symbol} Alerte de Prix", color=discord.Color.red())
                     embed.add_field(name="Prix Actuel", value=f"${token_info['priceUsd']}", inline=False)
                     embed.add_field(name="Prix Cible", value=f"${alert['target_price']}", inline=False)
-                    embed.set_thumbnail(url='https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/alerte3.jpeg?raw=true')  
+                    embed.set_thumbnail(url='https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/alertxpet/alert8.jpeg?raw=true')  
                     await user.send(embed=embed)
                     user_alerts.remove(alert)  # Supprimez l'alerte après notification
             except Exception as e:
