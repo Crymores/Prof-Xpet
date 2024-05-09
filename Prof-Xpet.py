@@ -27,15 +27,16 @@ def read_token_data():
         print(f"Le fichier {FILE_PATH} n'existe pas.")
         return {"tokens": {}}
 
+# Utiliser les chemins définis en haut du script
 def read_alerts_data():
-    if os.path.exists('alerts_data.json'):
-        with open('alerts_data.json', 'r', encoding='utf-8') as file:
+    if os.path.exists(ALERTS_FILE_PATH):
+        with open(ALERTS_FILE_PATH, 'r', encoding='utf-8') as file:
             return json.load(file)
     else:
         return {}  # Retourne un dictionnaire vide si le fichier n'existe pas
 
 def save_alerts_data(alerts):
-    with open('alerts_data.json', 'w', encoding='utf-8') as file:
+    with open(ALERTS_FILE_PATH, 'w', encoding='utf-8') as file:
         json.dump(alerts, file, indent=4)
         
 # Fonction pour récupérer les informations des tokens
@@ -197,13 +198,13 @@ class PriceTargetModal(discord.ui.Modal):
 @tasks.loop(seconds=60)
 async def check_price_alerts():
     alerts = read_alerts_data()
-    token_data = read_token_data()  # Lire les données des tokens une fois pour toutes les alertes
+    token_data = read_token_data()  # Lire les données des tokens une seule fois
 
     for user_id_str, user_alerts in alerts.items():
+        user = None
         try:
             user_id = int(user_id_str)  # Assurez-vous que c'est un entier valide
             user = await bot.fetch_user(user_id)
-            # Votre logique d'alerte ici
         except ValueError:
             print(f"L'ID d'utilisateur {user_id_str} n'est pas un entier valide.")
             continue  # Passe au prochain ID si celui-ci est invalide
@@ -213,8 +214,9 @@ async def check_price_alerts():
         except Exception as e:
             print(f"Erreur lors de la récupération de l'utilisateur {user_id}: {e}")
             continue
-        
-        for alert in user_alerts[:]:  # Itérer sur une copie pour pouvoir modifier la liste originale
+
+        alerts_to_remove = []  # Collecter les alertes à supprimer après l'itération
+        for alert in user_alerts:
             token_symbol = alert['token'].upper()
             token_info = token_data['tokens'].get(token_symbol)
 
@@ -222,19 +224,21 @@ async def check_price_alerts():
                 print(f"Token {token_symbol} introuvable dans les données des tokens.")
                 continue  # Passez à l'alerte suivante si les informations sur le token ne sont pas trouvées
 
-            try:
-                if float(token_info['priceUsd']) >= alert['target_price']:
-                    embed = discord.Embed(title=f"🚨 Alerte: {token_symbol} Alerte de Prix", color=discord.Color.red())
-                    embed.add_field(name="Prix Actuel", value=f"${token_info['priceUsd']}", inline=False)
-                    embed.add_field(name="Prix Cible", value=f"${alert['target_price']}", inline=False)
-                    embed.set_thumbnail(url='https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/alertxpet/alert8.jpeg?raw=true')  
-                    await user.send(embed=embed)
-                    user_alerts.remove(alert)  # Supprimez l'alerte après notification
-            except Exception as e:
-                print(f"Erreur lors de la vérification/envoi de l'alerte pour {user_id} et le token {token_symbol}: {e}")
-                continue  # Passez à l'alerte suivante en cas d'erreur
+            current_price = float(token_info['priceUsd'])
+            target_price = float(alert['target_price'])
+            if current_price >= target_price:
+                embed = discord.Embed(title=f"🚨 Alerte: {token_symbol} Alerte de Prix", color=discord.Color.red())
+                embed.add_field(name="Prix Actuel", value=f"${current_price}", inline=False)
+                embed.add_field(name="Prix Cible", value=f"${target_price}", inline=False)
+                embed.set_thumbnail(url='https://github.com/Crymores/Prof-Xpet/blob/main/img-xpet/alertxpet/alert8.jpeg?raw=true')  
+                await user.send(embed=embed)
+                alerts_to_remove.append(alert)  # Marquer pour suppression après envoi
+
+        for alert in alerts_to_remove:
+            user_alerts.remove(alert)  # Supprimer l'alerte après notification
 
     save_alerts_data(alerts)  # Sauvegarder les modifications apportées aux alertes
+
 
 
 
